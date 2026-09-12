@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cute & Elegant Flower Garden 2D</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Quicksand', sans-serif; }
+    h1, h2, h3, .font-title { font-family: 'Fredoka', cursive; }
+    body { margin: 0; overflow: hidden; background: linear-gradient(185deg, #a1c4fd 0%, #c2e9fb 100%); }
+    .glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(12px); border: 2px solid rgba(255, 255, 255, 0.6); }
+    .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.4); }
+    .flower-pot { transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .flower-pot:hover { transform: translateY(-8px) scale(1.03); }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 10px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(236, 72, 153, 0.4); border-radius: 10px; }
+  </style>
+</head>
+<body class="h-screen w-screen relative select-none">
+
+  <!-- Efek Kelopak Bunga Berjatuhan (Background Effect) -->
+  <canvas id="petalCanvas" class="absolute inset-0 pointer-events-none z-0"></canvas>
+
+  <!-- UI TOP BAR -->
+  <div class="absolute top-4 left-4 right-4 z-20 flex justify-between items-center pointer-events-none">
+    <div class="flex gap-3 pointer-events-auto">
+      <div class="glass px-5 py-2.5 rounded-2xl flex items-center gap-3 shadow-md">
+        <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-500 shadow-inner">
+          <i class="fa-solid fa-coins text-lg"></i>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Koin</p>
+          <p id="coinText" class="text-lg font-bold text-gray-800 leading-none">1,250</p>
+        </div>
+      </div>
+
+      <div class="glass px-5 py-2.5 rounded-2xl flex items-center gap-3 shadow-md">
+        <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500 shadow-inner">
+          <i class="fa-solid fa-leaf text-lg"></i>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Level</p>
+          <p id="levelText" class="text-lg font-bold text-gray-800 leading-none">Lv. 5 Tukang Kebun</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tombol Menu kanan -->
+    <div class="flex gap-3 pointer-events-auto">
+      <button onclick="openModal('wardrobeModal')" class="glass hover:bg-white text-pink-600 font-bold px-5 py-2.5 rounded-2xl shadow-md transition flex items-center gap-2">
+        <i class="fa-solid fa-wand-magic-sparkles text-lg"></i> Lemari Baju (<span id="activeOutfitName">Cute Princess</span>)
+      </button>
+      <button onclick="openModal('shopModal')" class="glass hover:bg-white text-purple-600 font-bold px-5 py-2.5 rounded-2xl shadow-md transition flex items-center gap-2">
+        <i class="fa-solid fa-store text-lg"></i> Toko Bibit (50+ Bunga)
+      </button>
+    </div>
+  </div>
+
+  <!-- AREA KAJIAN / TAMAN UTAMA (CANVAS GARDEN 2D) -->
+  <div class="absolute inset-0 pt-24 pb-24 px-8 z-10 overflow-y-auto custom-scroll flex justify-center">
+    <div class="max-w-5xl w-full">
+      <!-- Karakter Utama -->
+      <div class="flex flex-col items-center mb-6">
+        <div id="characterAvatar" class="w-32 h-40 relative flex flex-col items-center justify-center transition-all duration-300">
+          <!-- Ilustrasi Karakter 2D Vector -->
+          <div id="avatarHat" class="text-4xl absolute -top-4 z-20">👑</div>
+          <div id="avatarFace" class="w-20 h-20 bg-pink-100 rounded-full border-4 border-white shadow-md flex items-center justify-center relative z-10">
+            <span class="text-3xl">😊</span>
+          </div>
+          <div id="avatarDress" class="w-24 h-20 bg-pink-400 rounded-b-3xl -mt-6 border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-bold pt-4">
+            <span id="dressIcon" class="text-2xl">👗</span>
+          </div>
+        </div>
+        <p class="mt-2 text-sm font-bold text-gray-700 glass px-4 py-1 rounded-full">Karakter Kamu</p>
+      </div>
+
+      <!-- Grid Pot Bunga Taman (12 Slot) -->
+      <div id="gardenGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 pb-12">
+        <!-- Pot Bunga akan dimasukkan otomatis lewat JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM CONTROL BAR -->
+  <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex gap-4 pointer-events-auto">
+    <button onclick="waterAll()" class="bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white font-bold px-7 py-3.5 rounded-2xl shadow-lg transition flex items-center gap-3 transform hover:scale-105 active:scale-95">
+      <i class="fa-solid fa-droplet text-xl"></i> Siram Semua Bunga
+    </button>
+    <button onclick="harvestAll()" class="bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold px-7 py-3.5 rounded-2xl shadow-lg transition flex items-center gap-3 transform hover:scale-105 active:scale-95">
+      <i class="fa-solid fa-basket-shopping text-xl"></i> Panen Bunga Mekar
+    </button>
+  </div>
+
+  <!-- MODAL: TOKO BIBIT BUNGA (50+ VARIATION) -->
+  <div id="shopModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 flex items-center justify-center hidden">
+    <div class="glass-card w-full max-w-3xl rounded-3xl p-6 m-4 max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-title font-bold text-purple-900 flex items-center gap-2">
+          <i class="fa-solid fa-seedling text-emerald-500"></i> Katalog Bibit Bunga Super Lengkap (50+)
+        </h2>
+        <button onclick="closeModal('shopModal')" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-500 font-bold transition flex items-center justify-center">✕</button>
+      </div>
+      
+      <!-- Filter Kategori Bunga -->
+      <div class="flex gap-2 mb-4 overflow-x-auto pb-2 custom-scroll text-sm font-bold">
+        <button onclick="filterFlowers('all')" class="px-4 py-2 rounded-xl bg-purple-600 text-white shadow-md">Semua (50+)</button>
+        <button onclick="filterFlowers('common')" class="px-4 py-2 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300">Biasa 🌸</button>
+        <button onclick="filterFlowers('rare')" class="px-4 py-2 rounded-xl bg-blue-100 text-blue-700 hover:bg-blue-200">Langka 🪻</button>
+        <button onclick="filterFlowers('epic')" class="px-4 py-2 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200">Anggun 🌺</button>
+        <button onclick="filterFlowers('legendary')" class="px-4 py-2 rounded-xl bg-amber-100 text-amber-700 hover:bg-amber-200">Mitos ✨</button>
+      </div>
+
+      <!-- List Bunga Grid -->
+      <div id="flowerShopGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 overflow-y-auto custom-scroll pr-1 p-2">
+        <!-- Generated via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: LEMARI PAKAIAN & DRESS-UP -->
+  <div id="wardrobeModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 flex items-center justify-center hidden">
+    <div class="glass-card w-full max-w-2xl rounded-3xl p-6 m-4 max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-title font-bold text-pink-900 flex items-center gap-2">
+          <i class="fa-solid fa-shirt text-pink-500"></i> Lemari Baju & Aksesori Elegan
+        </h2>
+        <button onclick="closeModal('wardrobeModal')" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-500 font-bold transition flex items-center justify-center">✕</button>
+      </div>
+
+      <div id="outfitGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-4 overflow-y-auto custom-scroll pr-1 p-2">
+        <!-- Generated via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT LOGIKA GAME (VANILLA JS 2D) -->
+  <script>
+    // DATA 50+ BUNGA DENGAN DESAIN & KATEGORI BERAGAM
+    const FLOWER_DATABASE = [];
+    const flowerTypes = ['Mawar', 'Tulip', 'Sakura', 'Anggrek', 'Sunflower', 'Lily', 'Lavender', 'Dahlia', 'Lotus', 'Carnation', 'Peony', 'Iris', 'Hydrangea', 'Daisy', 'Jasmine'];
+    const colors = ['Pink', 'Merah', 'Ungu', 'Emas', 'Biru', 'Putih', 'Kuning', 'Pastel', 'Pelangi', 'Kristal'];
+    const rarities = ['common', 'rare', 'epic', 'legendary'];
+    const flowerIcons = ['🌹','🌷','🌸','🌺','🌻','🪻','🪷','🌼','💐','🌾','🌿'];
+
+    let idCount = 1;
+    rarities.forEach(rarity => {
+      flowerTypes.forEach(type => {
+        colors.forEach(color => {
+          if (FLOWER_DATABASE.length < 52) {
+            let price = rarity === 'common' ? 50 : rarity === 'rare' ? 150 : rarity === 'epic' ? 350 : 800;
+            let icon = flowerIcons[Math.floor(Math.random() * flowerIcons.length)];
+            FLOWER_DATABASE.push({
+              id: idCount++,
+              name: `${type} ${color}`,
+              rarity: rarity,
+              price: price,
+              icon: icon,
+              growthTime: rarity === 'common' ? 3 : rarity === 'rare' ? 5 : 8
+            });
+          }
+        });
+      });
+    });
+
+    // DATA OUTFIT / SKIN PAKAIAN (ELEGANT & CUTE)
+    const OUTFIT_DATABASE = [
+      { id: 1, name: 'Cute Princess', hat: '👑', dressIcon: '👗', dressColor: 'bg-pink-400', price: 0, unlocked: true },
+      { id: 2, name: 'Fairy Wings', hat: '🧚‍♀️', dressIcon: '🥻', dressColor: 'bg-purple-400', price: 200, unlocked: false },
+      { id: 3, name: 'Royal Queen', hat: '👸', dressIcon: '👘', dressColor: 'bg-amber-400', price: 500, unlocked: false },
+      { id: 4, name: 'Gardener Bunny', hat: '🐰', dressIcon: '🩱', dressColor: 'bg-emerald-400', price: 300, unlocked: false },
+      { id: 5, name: 'Angel Blossom', hat: '😇', dressIcon: '👗', dressColor: 'bg-sky-300', price: 800, unlocked: false },
+      { id: 6, name: 'Witch Botanist', hat: '🧙‍♀️', dressIcon: '🥻', dressColor: 'bg-indigo-600', price: 600, unlocked: false }
+    ];
+
+    // STATE GAME
+    let coins = 1250;
+    let gardenSlots = Array(12).fill(null); // 12 Pot Bunga
+    let activeOutfit = OUTFIT_DATABASE[0];
+
+    // INITIALIZE GAME
+    window.addEventListener('DOMContentLoaded', () => {
+      // Tanam bunga default di beberapa pot
+      gardenSlots[0] = { ...FLOWER_DATABASE[0], stage: 2 }; // Mekar
+      gardenSlots[1] = { ...FLOWER_DATABASE[2], stage: 1 }; // Tunas
+      gardenSlots[2] = { ...FLOWER_DATABASE[5], stage: 2 }; // Mekar
+
+      renderGarden();
+      renderShop('all');
+      renderWardrobe();
+      initPetalCanvas();
+    });
+
+    // RENDER POT BUNGA 2D
+    function renderGarden() {
+      const grid = document.getElementById('gardenGrid');
+      grid.innerHTML = '';
+
+      gardenSlots.forEach((slot, index) => {
+        const pot = document.createElement('div');
+        pot.className = 'glass-card rounded-3xl p-4 flex flex-col items-center justify-between h-52 shadow-lg flower-pot relative';
+
+        if (slot) {
+          let flowerVisual = slot.stage === 0 ? '🌱' : slot.stage === 1 ? '🌿' : slot.icon;
+          let stageLabel = slot.stage === 0 ? 'Benih' : slot.stage === 1 ? 'Tumbuh' : 'Mekar ✨';
+          let badgeColor = slot.rarity === 'legendary' ? 'bg-amber-400 text-white' : slot.rarity === 'epic' ? 'bg-purple-500 text-white' : 'bg-emerald-100 text-emerald-700';
+
+          pot.innerHTML = `
+            <span class="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeColor} uppercase tracking-wider">${slot.rarity}</span>
+            <div class="text-6xl mt-4 cursor-pointer transform hover:scale-110 transition" onclick="waterSingle(${index})">
+              ${flowerVisual}
+            </div>
+            <div class="text-center w-full mt-2">
+              <p class="font-bold text-gray-800 text-sm truncate">${slot.name}</p>
+              <p class="text-xs text-gray-500 font-semibold mb-2">${stageLabel}</p>
+              ${slot.stage === 2 
+                ? `<button onclick="harvestSingle(${index})" class="w-full bg-amber-400 hover:bg-amber-500 text-white font-bold text-xs py-1.5 rounded-xl transition shadow">Panen (+${slot.price})</button>`
+                : `<button onclick="waterSingle(${index})" class="w-full bg-sky-400 hover:bg-sky-500 text-white font-bold text-xs py-1.5 rounded-xl transition shadow">Siram 💧</button>`
+              }
+            </div>
+          `;
+        } else {
+          pot.innerHTML = `
+            <div class="my-auto text-center cursor-pointer" onclick="openModal('shopModal')">
+              <div class="w-14 h-14 rounded-full bg-purple-50 text-purple-400 flex items-center justify-center text-2xl mx-auto mb-2 border-2 border-dashed border-purple-200">
+                ➕
+              </div>
+              <p class="text-xs font-bold text-gray-400">Pot Kosong</p>
+              <p class="text-[10px] text-purple-500 font-bold mt-1">Tanam Bunga</p>
+            </div>
+          `;
+        }
+        grid.appendChild(pot);
+      });
+
+      document.getElementById('coinText').innerText = coins.toLocaleString();
+    }
+
+    // RENDER TOKO BUNGA
+    function renderShop(filter) {
+      const grid = document.getElementById('flowerShopGrid');
+      grid.innerHTML = '';
+
+      const list = filter === 'all' ? FLOWER_DATABASE : FLOWER_DATABASE.filter(f => f.rarity === filter);
+
+      list.forEach(flower => {
+        const card = document.createElement('div');
+        card.className = 'bg-white/80 rounded-2xl p-3 border border-purple-100 flex flex-col items-center justify-between hover:shadow-md transition';
+        card.innerHTML = `
+          <div class="text-4xl my-2">${flower.icon}</div>
+          <div class="text-center w-full">
+            <p class="font-bold text-gray-800 text-xs truncate">${flower.name}</p>
+            <p class="text-[10px] text-purple-500 font-bold capitalize mb-2">${flower.rarity}</p>
+            <button onclick="buySeed(${flower.id})" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-1.5 rounded-xl transition flex items-center justify-center gap-1">
+              <span>🪙 ${flower.price}</span>
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterFlowers(rarity) {
+      renderShop(rarity);
+    }
+
+    // MEMBELI SEED & MENANAM
+    function buySeed(flowerId) {
+      const flower = FLOWER_DATABASE.find(f => f.id === flowerId);
+      if (coins < flower.price) {
+        alert('Koin kamu tidak cukup!');
+        return;
+      }
+
+      const emptyIndex = gardenSlots.findIndex(slot => slot === null);
+      if (emptyIndex === -1) {
+        alert('Semua pot di taman sudah penuh! Panen bunga dulu ya.');
+        return;
+      }
+
+      coins -= flower.price;
+      gardenSlots[emptyIndex] = { ...flower, stage: 0 };
+      renderGarden();
+      closeModal('shopModal');
+    }
+
+    // INTERAKSI: SIRAM & PANEN
+    function waterSingle(index) {
+      if (gardenSlots[index] && gardenSlots[index].stage < 2) {
+        gardenSlots[index].stage += 1;
+        renderGarden();
+      }
+    }
+
+    function waterAll() {
+      gardenSlots.forEach((slot, i) => {
+        if (slot && slot.stage < 2) slot.stage += 1;
+      });
+      renderGarden();
+    }
+
+    function harvestSingle(index) {
+      if (gardenSlots[index] && gardenSlots[index].stage === 2) {
+        coins += gardenSlots[index].price * 1.5;
+        gardenSlots[index] = null;
+        renderGarden();
+      }
+    }
+
+    function harvestAll() {
+      gardenSlots.forEach((slot, i) => {
+        if (slot && slot.stage === 2) {
+          coins += slot.price * 1.5;
+          gardenSlots[i] = null;
+        }
+      });
+      renderGarden();
+    }
+
+    // RENDER LEMARI PAKAIAN (DRESS-UP)
+    function renderWardrobe() {
+      const grid = document.getElementById('outfitGrid');
+      grid.innerHTML = '';
+
+      OUTFIT_DATABASE.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'bg-white/80 rounded-2xl p-4 border border-pink-100 flex flex-col items-center justify-between hover:shadow-md transition';
+        
+        let actionBtn = item.unlocked 
+          ? `<button onclick="equipOutfit(${item.id})" class="w-full ${activeOutfit.id === item.id ? 'bg-emerald-500' : 'bg-pink-500 hover:bg-pink-600'} text-white font-bold text-xs py-1.5 rounded-xl transition">
+              ${activeOutfit.id === item.id ? 'Dipakai ✓' : 'Pakai'}
+             </button>`
+          : `<button onclick="buyOutfit(${item.id})" class="w-full bg-amber-400 hover:bg-amber-500 text-white font-bold text-xs py-1.5 rounded-xl transition">
+              Beli 🪙 ${item.price}
+             </button>`;
+
+        card.innerHTML = `
+          <div class="text-4xl my-2 flex items-center gap-1">
+            <span>${item.hat}</span><span>${item.dressIcon}</span>
+          </div>
+          <p class="font-bold text-gray-800 text-xs mb-2">${item.name}</p>
+          ${actionBtn}
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function equipOutfit(id) {
+      const outfit = OUTFIT_DATABASE.find(o => o.id === id);
+      activeOutfit = outfit;
+      document.getElementById('avatarHat').innerText = outfit.hat;
+      document.getElementById('dressIcon').innerText = outfit.dressIcon;
+      document.getElementById('avatarDress').className = `w-24 h-20 ${outfit.dressColor} rounded-b-3xl -mt-6 border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-bold pt-4`;
+      document.getElementById('activeOutfitName').innerText = outfit.name;
+      renderWardrobe();
+      closeModal('wardrobeModal');
+    }
+
+    function buyOutfit(id) {
+      const outfit = OUTFIT_DATABASE.find(o => o.id === id);
+      if (coins >= outfit.price) {
+        coins -= outfit.price;
+        outfit.unlocked = true;
+        equipOutfit(id);
+      } else {
+        alert('Koin belum cukup untuk membeli gaun ini!');
+      }
+    }
+
+    // MODAL CONTROL
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    // CANVAS EFEK KELOPAK BUNGA BERJATUHAN (BACKGROUND ANIMATION)
+    function initPetalCanvas() {
+      const canvas = document.getElementById('petalCanvas');
+      const ctx = canvas.getContext('2d');
+      let width = canvas.width = window.innerWidth;
+      let height = canvas.height = window.innerHeight;
+
+      const petals = Array.from({ length: 25 }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        size: Math.random() * 8 + 6,
+        speedY: Math.random() * 1 + 0.5,
+        speedX: Math.random() * 0.5 - 0.25,
+        angle: Math.random() * 360
+      }));
+
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = 'rgba(244, 114, 182, 0.6)';
+
+        petals.forEach(p => {
+          ctx.beginPath();
+          ctx.ellipse(p.x, p.y, p.size, p.size / 2, p.angle, 0, Math.PI * 2);
+          ctx.fill();
+
+          p.y += p.speedY;
+          p.x += p.speedX;
+          p.angle += 0.01;
+
+          if (p.y > height) { p.y = -10; p.x = Math.random() * width; }
+        });
+
+        requestAnimationFrame(draw);
+      }
+      draw();
+
+      window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      });
+    }
+  </script>
+</body>
+</html>
